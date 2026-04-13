@@ -4,7 +4,9 @@ export default function Navbar() {
   const { totalQty, setCartOpen } = useCart();
   return (
     <nav>
-      <div className="logo">Brown Sugar<span>Co.</span></div>
+      <a href="#home" className="logo">
+        <img src="/images/logo.png" alt="Brown Sugar Co." className="logo-img" />
+      </a>
       <ul>
         <li><a href="#products">Products</a></li>
         <li><a href="#how-it-works">How It Works</a></li>
