@@ -6,9 +6,9 @@ export default function Navbar() {
     <nav>
       <div className="logo">Brown Sugar<span>Co.</span></div>
       <ul>
-        <li><a href="#about">About</a></li>
-        <li><a href="#menu">Menu</a></li>
-        <li><a href="#contact">Contact</a></li>
+        <li><a href="#products">Products</a></li>
+        <li><a href="#how-it-works">How It Works</a></li>
+        <li><a href="#catering">Catering</a></li>
       </ul>
       <button className="cart-btn" onClick={() => setCartOpen(true)}>
         Cart

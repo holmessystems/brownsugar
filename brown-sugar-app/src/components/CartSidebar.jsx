@@ -2,7 +2,7 @@ import { useCart } from '../context/CartContext';
 import Totals from './Totals';
 
 export default function CartSidebar() {
-  const { cart, cartOpen, setCartOpen, setCheckoutOpen, changeQty, fulfillment, setFulfillment, showToast } = useCart();
+  const { cart, cartOpen, setCartOpen, setCheckoutOpen, changeQty, showToast } = useCart();
 
   const openCheckout = () => {
     if (cart.length === 0) { showToast('Add items to your cart first'); return; }
@@ -22,14 +22,14 @@ export default function CartSidebar() {
           {cart.length === 0 ? (
             <p className="cart-empty">Your cart is empty.<br />Browse our menu to get started.</p>
           ) : cart.map(item => (
-            <div className="cart-item" key={item.id}>
+            <div className="cart-item" key={`${item.id}-${item.flavor}`}>
               <div style={{ flex: 1 }}>
-                <p className="cart-item-name">{item.name}</p>
-                <p className="cart-item-meta">${item.price} / {item.perLabel}</p>
+                <p className="cart-item-name">{item.name}{item.flavor ? ` (${item.flavor})` : ''}</p>
+                <p className="cart-item-meta">${item.price} / box</p>
                 <div className="cart-item-actions">
-                  <button className="qty-btn" onClick={() => changeQty(item.id, -1)}>−</button>
+                  <button className="qty-btn" onClick={() => changeQty(item.id, -1, item.flavor)}>−</button>
                   <span className="qty-display">{item.qty}</span>
-                  <button className="qty-btn" onClick={() => changeQty(item.id, 1)}>+</button>
+                  <button className="qty-btn" onClick={() => changeQty(item.id, 1, item.flavor)}>+</button>
                 </div>
               </div>
               <span className="cart-item-price">${(item.price * item.qty).toFixed(2)}</span>
@@ -37,21 +37,10 @@ export default function CartSidebar() {
           ))}
         </div>
         <div className="cart-footer">
-          <div className="fulfillment-selector">
-            <label>Fulfillment Method</label>
-            <div className="fulfillment-tabs">
-              <button className={`fulfillment-tab${fulfillment === 'pickup' ? ' active' : ''}`} onClick={() => setFulfillment('pickup')}>🏪 Pickup</button>
-              <button className={`fulfillment-tab${fulfillment === 'shipping' ? ' active' : ''}`} onClick={() => setFulfillment('shipping')}>🚗 Delivery</button>
-            </div>
-          </div>
-          {fulfillment === 'pickup' ? (
-            <div className="pickup-info"><strong>Houston Pickup</strong><br />Available at pop-up events &amp; by appointment<br />DM us @officialbrownsugarco for details</div>
-          ) : (
-            <div className="shipping-note"><strong>Local Delivery Available</strong><br />Houston area delivery · Order by Thu for weekend delivery<br />Free delivery on orders $50+</div>
-          )}
+          <div className="pickup-info"><strong>Houston Pickup</strong><br />Available at pop-up events &amp; by appointment<br />DM us @officialbrownsugarco for details</div>
           {cart.length > 0 && <Totals />}
           <button className="checkout-btn" onClick={openCheckout}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}><path d="M2 2h2l2.5 7h6l1.5-5H5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><circle cx="7" cy="13" r="1" fill="white" /><circle cx="12" cy="13" r="1" fill="white" /></svg>
+            <svg width="1em" height="1em" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}><path d="M2 2h2l2.5 7h6l1.5-5H5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><circle cx="7" cy="13" r="1" fill="white" /><circle cx="12" cy="13" r="1" fill="white" /></svg>
             Proceed to Checkout
           </button>
           <p className="square-badge">🔒 Secured by Square Payments</p>

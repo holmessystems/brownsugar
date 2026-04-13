@@ -5,7 +5,7 @@ import useSquarePayment from '../hooks/useSquarePayment';
 
 export default function CheckoutModal() {
   const {
-    checkoutOpen, setCheckoutOpen, fulfillment,
+    checkoutOpen, setCheckoutOpen,
     showToast, clearCart, cart, total,
   } = useCart();
 
@@ -16,7 +16,6 @@ export default function CheckoutModal() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [instructions, setInstructions] = useState('');
-  const [address, setAddress] = useState({ street: '', city: '', state: 'TX', zip: '' });
   const [submitting, setSubmitting] = useState(false);
 
   if (!checkoutOpen) return null;
@@ -26,7 +25,6 @@ export default function CheckoutModal() {
   const resetForm = () => {
     setFirstName(''); setLastName(''); setEmail('');
     setPhone(''); setInstructions('');
-    setAddress({ street: '', city: '', state: 'TX', zip: '' });
   };
 
   const submit = async () => {
@@ -55,7 +53,6 @@ export default function CheckoutModal() {
           currency: 'USD',
           customer: { firstName, lastName, email, phone, instructions },
           cart: cart.map(({ id, name, price, qty }) => ({ id, name, price, qty })),
-          fulfillment,
         }),
       });
 
@@ -105,33 +102,9 @@ export default function CheckoutModal() {
             </div>
           </div>
 
-          {fulfillment === 'shipping' && (
-            <>
-              <p className="modal-section">Delivery Address</p>
-              <div className="form-group">
-                <label>Street Address</label>
-                <input type="text" placeholder="123 Main St" value={address.street} onChange={e => setAddress(p => ({ ...p, street: e.target.value }))} />
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>City</label>
-                  <input type="text" placeholder="Houston" value={address.city} onChange={e => setAddress(p => ({ ...p, city: e.target.value }))} />
-                </div>
-                <div className="form-group">
-                  <label>State</label>
-                  <input type="text" placeholder="TX" value={address.state} onChange={e => setAddress(p => ({ ...p, state: e.target.value }))} />
-                </div>
-              </div>
-              <div className="form-group">
-                <label>ZIP Code</label>
-                <input type="text" placeholder="77002" value={address.zip} onChange={e => setAddress(p => ({ ...p, zip: e.target.value }))} />
-              </div>
-            </>
-          )}
-
           <div className="form-group">
             <label>Special Instructions (optional)</label>
-            <textarea placeholder="Dietary notes, allergies, delivery preferences..." value={instructions} onChange={e => setInstructions(e.target.value)} />
+            <textarea placeholder="Dietary notes, allergies, pickup preferences..." value={instructions} onChange={e => setInstructions(e.target.value)} />
           </div>
 
           <p className="modal-section">Payment</p>

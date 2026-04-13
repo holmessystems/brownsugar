@@ -1,11 +1,14 @@
 import { CartProvider } from './context/CartContext';
 import Navbar from './components/Navbar';
+import SitewideBanner from './components/SitewideBanner';
 import Hero from './components/Hero';
-import Strip from './components/Strip';
+import HowItWorks from './components/HowItWorks';
+import ProductSection from './components/ProductSection';
+import PickupInstructions from './components/PickupInstructions';
+import PopUpCalendar from './components/PopUpCalendar';
+import SocialProof from './components/SocialProof';
 import About from './components/About';
-import Menu from './components/Menu';
-import Testimonials from './components/Testimonials';
-import Contact from './components/Contact';
+import CateringEvents from './components/CateringEvents';
 import Footer from './components/Footer';
 import CartSidebar from './components/CartSidebar';
 import CheckoutModal from './components/CheckoutModal';
@@ -15,12 +18,15 @@ export default function App() {
   return (
     <CartProvider>
       <Navbar />
+      <SitewideBanner />
       <Hero />
-      <Strip />
+      <HowItWorks />
+      <ProductSection />
+      <PickupInstructions />
+      <PopUpCalendar />
+      <SocialProof />
       <About />
-      <Menu />
-      <Testimonials />
-      <Contact />
+      <CateringEvents />
       <Footer />
       <CartSidebar />
       <CheckoutModal />
