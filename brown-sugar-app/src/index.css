@@ -539,7 +539,7 @@ nav ul a:hover { color: var(--rose-gold); }
 /* CATERING & EVENTS */
 .catering-events {
   padding: var(--space-xl) var(--pad-x);
-  max-width: min(65rem, 92vw);
+  max-width: min(80rem, 92vw);
   margin: 0 auto;
 }
 .catering-details {
