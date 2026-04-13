@@ -1,9 +1,4 @@
 {
-  "framework": "vite",
-  "installCommand": "npm install",
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "rootDirectory": "brown-sugar-app",
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/:path*" }
   ],
