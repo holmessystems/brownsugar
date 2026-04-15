@@ -7,6 +7,16 @@ export const product = {
   image: "/images/variety-image.jpg",
 };
 
+// TODO: Remove after testing
+export const testProduct = {
+  id: 99,
+  name: "TEST — Cinnamon Roll Box (1¢)",
+  price: 0.01,
+  boxSize: 4,
+  description: "⚠️ Test box — same 4-pack builder, costs 1¢. Remove before launch.",
+  image: "/images/variety-image.jpg",
+};
+
 export const flavors = [
   { id: "classic", name: "Classic", image: "/images/classic.jpeg" },
   { id: "matcha", name: "Matcha", image: "/images/matcha.jpeg" },

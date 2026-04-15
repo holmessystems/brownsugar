@@ -13,7 +13,7 @@ export default function CheckoutModal() {
     setConfirmationOpen, setConfirmationData,
   } = useCart();
 
-  const { cardReady, loading, error: cardError, tokenize } = useSquarePayment();
+  const { cardReady, loading, error: cardError, tokenize } = useSquarePayment(checkoutOpen);
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -81,6 +81,14 @@ export default function CheckoutModal() {
       setCheckoutOpen(false);
       setConfirmationOpen(true);
       resetForm();
+
+      // Send confirmation email in demo mode too
+      fetch('/api/send-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData),
+      }).catch(err => console.error('Email send failed:', err));
+
       return;
     }
 
@@ -113,6 +121,13 @@ export default function CheckoutModal() {
       setCheckoutOpen(false);
       setConfirmationOpen(true);
       resetForm();
+
+      // Send confirmation email (fire and forget — don't block the UI)
+      fetch('/api/send-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData),
+      }).catch(err => console.error('Email send failed:', err));
     } catch (err) {
       showToast(err.message || 'Something went wrong');
     } finally {
