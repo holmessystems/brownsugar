@@ -2,7 +2,9 @@ export const product = {
   id: 1,
   name: "Cinnamon Roll Box",
   price: 30,
-  description: "A box of our fresh, handcrafted cinnamon rolls.",
+  boxSize: 4,
+  description: "Build your own 4-pack of fresh, handcrafted cinnamon rolls. Mix & match your favorite flavors.",
+  image: "/images/variety-image.jpg",
 };
 
 export const flavors = [

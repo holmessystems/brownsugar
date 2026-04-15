@@ -12,6 +12,7 @@ import CateringEvents from './components/CateringEvents';
 import Footer from './components/Footer';
 import CartSidebar from './components/CartSidebar';
 import CheckoutModal from './components/CheckoutModal';
+import OrderConfirmation from './components/OrderConfirmation';
 import Toast from './components/Toast';
 
 export default function App() {
@@ -30,6 +31,7 @@ export default function App() {
       <Footer />
       <CartSidebar />
       <CheckoutModal />
+      <OrderConfirmation />
       <Toast />
     </CartProvider>
   );

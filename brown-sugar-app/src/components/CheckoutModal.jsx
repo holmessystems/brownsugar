@@ -2,11 +2,15 @@ import { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import Totals from './Totals';
 import useSquarePayment from '../hooks/useSquarePayment';
+import siteConfig from '../data/siteConfig.json';
 
 export default function CheckoutModal() {
   const {
     checkoutOpen, setCheckoutOpen,
-    showToast, clearCart, cart, total,
+    showToast, clearCart, cart, total, subtotal, tax,
+    selectedPickupZip, setSelectedPickupZip,
+    pickupZipCodes,
+    setConfirmationOpen, setConfirmationData,
   } = useCart();
 
   const { cardReady, loading, error: cardError, tokenize } = useSquarePayment();
@@ -15,8 +19,10 @@ export default function CheckoutModal() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [pickupTime, setPickupTime] = useState('');
   const [instructions, setInstructions] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
 
   if (!checkoutOpen) return null;
 
@@ -24,19 +30,57 @@ export default function CheckoutModal() {
 
   const resetForm = () => {
     setFirstName(''); setLastName(''); setEmail('');
-    setPhone(''); setInstructions('');
+    setPhone(''); setPickupTime(''); setInstructions('');
+    setSelectedPickupZip(''); setErrors({});
+  };
+
+  const validate = () => {
+    const errs = {};
+    if (!firstName.trim()) errs.firstName = 'First name is required';
+    if (!email.trim()) errs.email = 'Email is required';
+    else if (!/\S+@\S+\.\S+/.test(email)) errs.email = 'Enter a valid email';
+    if (!phone.trim()) errs.phone = 'Phone number is required';
+    else if (phone.replace(/\D/g, '').length < 10) errs.phone = 'Enter a valid phone number';
+    if (!selectedPickupZip) errs.zip = 'Please select a pickup area';
+    if (!pickupTime) errs.pickupTime = 'Please select a pickup time';
+    return errs;
   };
 
   const submit = async () => {
-    if (!firstName || !email) {
-      showToast('Please complete your contact info');
+    const errs = validate();
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      showToast('Please complete all required fields');
       return;
     }
+    setErrors({});
+
+    const pickupAddress = siteConfig.pickupAddresses?.[selectedPickupZip] || '';
+
+    // Build confirmation data
+    const orderData = {
+      items: cart.map(item => ({
+        name: item.name,
+        flavorKey: item.flavorKey || item.flavor || '',
+        qty: item.qty,
+        price: item.price,
+      })),
+      subtotal,
+      tax,
+      total,
+      customer: { firstName, lastName, email, phone },
+      pickupTime,
+      pickupAddress,
+      pickupZip: selectedPickupZip,
+    };
 
     // If Square isn't configured, do a demo order
     if (!isConfigured) {
-      showToast('Demo mode — order placed! Confirmation sent to ' + email);
-      clearCart(); setCheckoutOpen(false); resetForm();
+      setConfirmationData(orderData);
+      clearCart();
+      setCheckoutOpen(false);
+      setConfirmationOpen(true);
+      resetForm();
       return;
     }
 
@@ -49,10 +93,11 @@ export default function CheckoutModal() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sourceId: token,
-          amount: Math.round(total * 100), // cents
+          amount: Math.round(total * 100),
           currency: 'USD',
           customer: { firstName, lastName, email, phone, instructions },
-          cart: cart.map(({ id, name, price, qty }) => ({ id, name, price, qty })),
+          cart: cart.map(({ id, name, price, qty, flavorKey }) => ({ id, name, price, qty, flavorKey })),
+          fulfillment: `Pickup at ${pickupAddress} — ${pickupTime}`,
         }),
       });
 
@@ -63,8 +108,11 @@ export default function CheckoutModal() {
         return;
       }
 
-      showToast('Order placed! Confirmation sent to ' + email);
-      clearCart(); setCheckoutOpen(false); resetForm();
+      setConfirmationData({ ...orderData, paymentId: data.paymentId, receiptUrl: data.receiptUrl });
+      clearCart();
+      setCheckoutOpen(false);
+      setConfirmationOpen(true);
+      resetForm();
     } catch (err) {
       showToast(err.message || 'Something went wrong');
     } finally {
@@ -72,19 +120,25 @@ export default function CheckoutModal() {
     }
   };
 
+  const pickupTimes = [
+    '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM',
+    '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM', '1:00 PM',
+  ];
+
   return (
     <div className="modal-overlay">
       <div className="modal">
         <div className="modal-header">
-          <h3>Complete Your Order</h3>
+          <h3>Complete Your Preorder</h3>
           <button className="close-cart" onClick={() => setCheckoutOpen(false)}>✕</button>
         </div>
         <div className="modal-body">
           <p className="modal-section">Contact Information</p>
           <div className="form-row">
             <div className="form-group">
-              <label>First Name</label>
-              <input type="text" placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} />
+              <label>First Name *</label>
+              <input type="text" placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} aria-invalid={!!errors.firstName} />
+              {errors.firstName && <span className="field-error">{errors.firstName}</span>}
             </div>
             <div className="form-group">
               <label>Last Name</label>
@@ -93,14 +147,41 @@ export default function CheckoutModal() {
           </div>
           <div className="form-row">
             <div className="form-group">
-              <label>Email</label>
-              <input type="email" placeholder="you@email.com" value={email} onChange={e => setEmail(e.target.value)} />
+              <label>Email *</label>
+              <input type="email" placeholder="you@email.com" value={email} onChange={e => setEmail(e.target.value)} aria-invalid={!!errors.email} />
+              {errors.email && <span className="field-error">{errors.email}</span>}
             </div>
             <div className="form-group">
-              <label>Phone</label>
-              <input type="tel" placeholder="(713) 000-0000" value={phone} onChange={e => setPhone(e.target.value)} />
+              <label>Phone *</label>
+              <input type="tel" placeholder="(713) 000-0000" value={phone} onChange={e => setPhone(e.target.value)} aria-invalid={!!errors.phone} />
+              {errors.phone && <span className="field-error">{errors.phone}</span>}
             </div>
           </div>
+
+          <p className="modal-section">Pickup Details</p>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Pickup Area (Zip Code) *</label>
+              <select value={selectedPickupZip} onChange={e => setSelectedPickupZip(e.target.value)} aria-invalid={!!errors.zip}>
+                <option value="">Select pickup area</option>
+                {pickupZipCodes.map(zip => (
+                  <option key={zip} value={zip}>{zip} — Houston Area</option>
+                ))}
+              </select>
+              {errors.zip && <span className="field-error">{errors.zip}</span>}
+            </div>
+            <div className="form-group">
+              <label>Pickup Time *</label>
+              <select value={pickupTime} onChange={e => setPickupTime(e.target.value)} aria-invalid={!!errors.pickupTime}>
+                <option value="">Select time</option>
+                {pickupTimes.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+              {errors.pickupTime && <span className="field-error">{errors.pickupTime}</span>}
+            </div>
+          </div>
+          <p className="pickup-note-checkout">Exact pickup address will be provided on your receipt after checkout.</p>
 
           <div className="form-group">
             <label>Special Instructions (optional)</label>
@@ -138,7 +219,7 @@ export default function CheckoutModal() {
             disabled={submitting || (isConfigured && loading)}
             style={{ opacity: submitting ? 0.6 : 1 }}
           >
-            {submitting ? 'Processing...' : 'Place Order'}
+            {submitting ? 'Processing...' : 'Place Preorder'}
           </button>
         </div>
       </div>

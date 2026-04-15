@@ -8,12 +8,15 @@ export default function Footer() {
           </a>
           <p>Houston's beloved pop-up bakery crafting nostalgic, elevated cinnamon rolls and desserts. Founded by sisters Anna &amp; Toni Perry in honor of their mother's legacy.</p>
           <p style={{ marginTop: 'var(--space-sm)' }}>📍 Houston, TX &nbsp;|&nbsp; ✉️ hello@officialbrownsugarco.com</p>
+          <p style={{ marginTop: 'var(--space-xs)', fontSize: 'clamp(0.65rem, 0.85vw, 0.75rem)', color: 'rgba(255,255,255,0.5)' }}>
+            Preorder only — no walk-ins or storefronts.
+          </p>
         </div>
         <div>
           <h4>Navigate</h4>
           <ul>
             <li><a href="#home">Home</a></li>
-            <li><a href="#products">Products</a></li>
+            <li><a href="#products">Build Your Box</a></li>
             <li><a href="#how-it-works">How It Works</a></li>
             <li><a href="#catering">Catering</a></li>
           </ul>
@@ -23,7 +26,7 @@ export default function Footer() {
           <ul>
             <li><a href="#products">Cinnamon Roll Box</a></li>
             <li><a href="#catering">Catering</a></li>
-            <li><a href="#popup-calendar">Pop-Ups</a></li>
+            <li><a href="#popup-calendar">Upcoming Pop-Ups</a></li>
           </ul>
         </div>
       </footer>

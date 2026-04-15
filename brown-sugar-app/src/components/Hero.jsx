@@ -14,10 +14,10 @@ export default function Hero() {
       <div className="hero-overlay" />
       <div className="hero-content">
         <h1 className="hero-title">Fresh Cinnamon Rolls. Limited Daily Batches.</h1>
-        <p className="hero-subtext">Preorder only. Pickup in Houston.</p>
-        <p className="hero-subtext">Mobile bakery operating from a commercial kitchen.</p>
+        <p className="hero-subtext">Preorder only — no walk-ins. Pickup in Houston.</p>
+        <p className="hero-subtext">Build your custom 4-pack and pick up at your selected time.</p>
         <a href="#products" className="btn-primary hero-cta" onClick={scrollToProducts}>
-          PREORDER FOR PICKUP
+          BUILD YOUR BOX
         </a>
       </div>
     </section>

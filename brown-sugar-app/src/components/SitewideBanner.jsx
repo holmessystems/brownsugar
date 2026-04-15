@@ -1,7 +1,7 @@
 export default function SitewideBanner() {
   return (
     <div className="sitewide-banner">
-      <p>Pickup only. No shipping available.</p>
+      <p>🍩 Preorder only — no walk-ins. Pickup location revealed after checkout.</p>
     </div>
   );
 }

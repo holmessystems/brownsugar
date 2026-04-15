@@ -1,9 +1,26 @@
 [
   {
     "id": "1",
-    "location": "Papa Joe's Coffee Shop",
-    "address": "4733 Richmond Ave, Houston, TX 77027",
-    "date": "2025-07-12",
-    "time": "9:00 AM - 1:00 PM"
+    "title": "Houston Heights Pop-Up",
+    "area": "Houston Heights, TX 77008",
+    "date": "Saturday, May 3, 2025",
+    "time": "9:00 AM – 1:00 PM",
+    "type": "One-Day Pop-Up"
+  },
+  {
+    "id": "2",
+    "title": "Midtown Sweet Drop",
+    "area": "Midtown, Houston, TX 77006",
+    "date": "Saturday, May 17, 2025",
+    "time": "10:00 AM – 2:00 PM",
+    "type": "One-Day Pop-Up"
+  },
+  {
+    "id": "3",
+    "title": "Sugar Land Pop-Up",
+    "area": "Sugar Land, TX 77479",
+    "date": "Saturday, June 7, 2025",
+    "time": "9:00 AM – 12:00 PM",
+    "type": "Limited-Time Event"
   }
 ]

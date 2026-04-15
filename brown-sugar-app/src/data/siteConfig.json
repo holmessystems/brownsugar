@@ -1,4 +1,13 @@
 {
   "dailyOrderCap": 20,
-  "nextDropOpens": "Saturday 9 AM CT"
+  "nextDropOpens": "Saturday 9 AM CT",
+  "pickupZipCodes": ["77006", "77008", "77027", "77068", "77406", "77479"],
+  "pickupAddresses": {
+    "77006": "1234 Midtown Ave, Houston, TX 77006",
+    "77008": "5678 Heights Blvd, Houston, TX 77008",
+    "77027": "4733 Richmond Ave, Houston, TX 77027",
+    "77068": "3140 FM 1960 Rd W, Houston, TX 77068",
+    "77406": "7920 W Grand Parkway S, Richmond, TX 77406",
+    "77479": "1500 Town Center Blvd, Sugar Land, TX 77479"
+  }
 }

@@ -7,12 +7,16 @@ export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [confirmationData, setConfirmationData] = useState(null);
   const [toast, setToast] = useState('');
   const [selectedPickupDate, setSelectedPickupDate] = useState(null);
+  const [selectedPickupZip, setSelectedPickupZip] = useState('');
   const [orderCounts, setOrderCounts] = useState({});
   const toastTimer = useRef(null);
 
   const dailyOrderCap = siteConfig.dailyOrderCap ?? 20;
+  const pickupZipCodes = siteConfig.pickupZipCodes ?? [];
 
   const showToast = useCallback((msg) => {
     setToast(msg);
@@ -28,6 +32,56 @@ export function CartProvider({ children }) {
     return !isDateSoldOut(date);
   }, [isDateSoldOut]);
 
+  // Add a customized 4-pack box to cart
+  const addBoxToCart = useCallback((flavorSelections, product) => {
+    if (selectedPickupDate && isDateSoldOut(selectedPickupDate)) {
+      showToast('Sold out for this date.');
+      return;
+    }
+
+    // flavorSelections is an object like { "Classic": 2, "Matcha": 1, "Peach Cobbler": 1 }
+    const totalRolls = Object.values(flavorSelections).reduce((s, q) => s + q, 0);
+    if (totalRolls !== product.boxSize) {
+      showToast(`Please select exactly ${product.boxSize} rolls for your box.`);
+      return;
+    }
+
+    // Build a unique key from the flavor combo
+    const flavorKey = Object.entries(flavorSelections)
+      .filter(([, qty]) => qty > 0)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([name, qty]) => `${qty}x ${name}`)
+      .join(', ');
+
+    setCart(prev => {
+      const existing = prev.find(c => c.id === product.id && c.flavorKey === flavorKey);
+      if (existing) {
+        return prev.map(c =>
+          c.id === product.id && c.flavorKey === flavorKey
+            ? { ...c, qty: c.qty + 1 }
+            : c
+        );
+      }
+      return [...prev, {
+        ...product,
+        flavorKey,
+        flavorSelections: { ...flavorSelections },
+        qty: 1,
+      }];
+    });
+
+    if (selectedPickupDate) {
+      setOrderCounts(prev => ({
+        ...prev,
+        [selectedPickupDate]: (prev[selectedPickupDate] ?? 0) + 1,
+      }));
+    }
+
+    showToast(`Custom box added to cart`);
+    setCartOpen(true);
+  }, [showToast, selectedPickupDate, isDateSoldOut]);
+
+  // Legacy single-flavor add (kept for compatibility)
   const addToCart = useCallback((item, flavor) => {
     if (selectedPickupDate && isDateSoldOut(selectedPickupDate)) {
       showToast('Sold out for this date.');
@@ -59,11 +113,11 @@ export function CartProvider({ children }) {
     setCartOpen(true);
   }, [showToast, selectedPickupDate, isDateSoldOut]);
 
-  const changeQty = useCallback((id, delta, flavor) => {
+  const changeQty = useCallback((id, delta, flavorKey) => {
     setCart(prev =>
       prev
         .map(c =>
-          c.id === id && c.flavor === flavor
+          c.id === id && (c.flavorKey === flavorKey || c.flavor === flavorKey)
             ? { ...c, qty: c.qty + delta }
             : c
         )
@@ -80,12 +134,16 @@ export function CartProvider({ children }) {
 
   return (
     <CartContext.Provider value={{
-      cart, addToCart, changeQty, clearCart,
+      cart, addToCart, addBoxToCart, changeQty, clearCart,
       cartOpen, setCartOpen,
       checkoutOpen, setCheckoutOpen,
+      confirmationOpen, setConfirmationOpen,
+      confirmationData, setConfirmationData,
       toast, showToast,
       totalQty, subtotal, tax, total,
       selectedPickupDate, setSelectedPickupDate,
+      selectedPickupZip, setSelectedPickupZip,
+      pickupZipCodes,
       orderCounts, dailyOrderCap,
       isDateSoldOut, canOrderForDate,
     }}>
