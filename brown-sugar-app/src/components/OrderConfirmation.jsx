@@ -5,7 +5,7 @@ export default function OrderConfirmation() {
 
   if (!confirmationOpen || !confirmationData) return null;
 
-  const { items, subtotal, tax, total, customer, pickupTime, pickupAddress, pickupZip } = confirmationData;
+  const { items, subtotal, tax, total, customer, pickupDay, pickupTime, pickupAddress, pickupZip } = confirmationData;
 
   return (
     <div className="modal-overlay">
@@ -44,6 +44,12 @@ export default function OrderConfirmation() {
 
           <p className="modal-section">Pickup Details</p>
           <div className="receipt-pickup">
+            {pickupDay && (
+              <div className="receipt-pickup-row">
+                <span className="receipt-label">Date</span>
+                <span>{pickupDay}</span>
+              </div>
+            )}
             <div className="receipt-pickup-row">
               <span className="receipt-label">Time</span>
               <span>{pickupTime}</span>

@@ -7,6 +7,7 @@ const SQUARE_BASE_URL =
 
 const SQUARE_VERSION = '2024-01-18';
 const LOCATION_ID = process.env.VITE_SQUARE_LOCATION_ID;
+const TAX_RATE = 0.0825;
 
 function squareFetch(path, body) {
   return fetch(`${SQUARE_BASE_URL}${path}`, {
@@ -20,6 +21,52 @@ function squareFetch(path, body) {
   });
 }
 
+// Map Square error codes to customer-friendly messages
+function friendlyPaymentError(errors) {
+  if (!errors || !errors.length) return 'Payment failed — please try again.';
+
+  const err = errors[0];
+  const code = err.code || '';
+  const category = err.category || '';
+
+  // Card-specific errors
+  if (code === 'CARD_DECLINED' || code === 'GENERIC_DECLINE')
+    return 'Your card was declined. Please check your card details or try a different card.';
+  if (code === 'INSUFFICIENT_FUNDS')
+    return 'Insufficient funds. Please try a different card.';
+  if (code === 'CARD_EXPIRED' || code === 'INVALID_EXPIRATION')
+    return 'Your card is expired. Please use a different card.';
+  if (code === 'INVALID_CARD' || code === 'INVALID_CARD_DATA')
+    return 'Invalid card details. Please double-check your card number, expiration, and CVV.';
+  if (code === 'CVV_FAILURE')
+    return 'CVV verification failed. Please check the security code on the back of your card.';
+  if (code === 'ADDRESS_VERIFICATION_FAILURE')
+    return 'Address verification failed. Please check the billing address associated with your card.';
+  if (code === 'CARD_DECLINED_VERIFICATION_REQUIRED')
+    return 'Your bank requires additional verification. Please contact your bank or try a different card.';
+  if (code === 'VOICE_FAILURE' || code === 'CARD_DECLINED_CALL_ISSUER')
+    return 'Your bank has flagged this transaction. Please contact your bank or try a different card.';
+  if (code === 'PAN_FAILURE')
+    return 'Invalid card number. Please re-enter your card details.';
+  if (code === 'ALLOWABLE_PIN_TRIES_EXCEEDED')
+    return 'Too many incorrect PIN attempts. Please try a different card.';
+  if (code === 'CARD_NOT_SUPPORTED')
+    return 'This card type is not supported. Please try a different card.';
+  if (code === 'TRANSACTION_LIMIT')
+    return 'This transaction exceeds the card\'s limit. Please try a smaller amount or use a different card.';
+  if (code === 'TEMPORARILY_UNAVAILABLE')
+    return 'Payment processing is temporarily unavailable. Please try again in a few minutes.';
+
+  // Category-level fallbacks
+  if (category === 'PAYMENT_METHOD_ERROR')
+    return 'There was a problem with your payment method. Please try a different card.';
+  if (category === 'REFUND_ERROR')
+    return 'There was a refund processing error. Please contact support.';
+
+  // Use Square's detail message if available, otherwise generic
+  return err.detail || 'Payment could not be processed. Please try again or use a different card.';
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -28,14 +75,18 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { sourceId, amount, currency, customer, cart, fulfillment } = req.body;
+  const { sourceId, currency, customer, cart, fulfillment } = req.body;
 
-  if (!sourceId || !amount) {
-    return res.status(400).json({ error: 'Missing sourceId or amount' });
+  if (!sourceId) {
+    return res.status(400).json({ error: 'Missing payment source' });
+  }
+  if (!cart || !cart.length) {
+    return res.status(400).json({ error: 'Cart is empty' });
   }
 
   try {
-    // 1. Create the order with line items
+    // 1. Compute totals server-side from cart to avoid mismatch
+    const cur = currency || 'USD';
     const lineItems = (cart || []).map(item => ({
       name: item.flavorKey
         ? `${item.name} (${item.flavorKey})`
@@ -43,9 +94,13 @@ export default async function handler(req, res) {
       quantity: String(item.qty),
       base_price_money: {
         amount: Math.round(item.price * 100),
-        currency: currency || 'USD',
+        currency: cur,
       },
     }));
+
+    const subtotalCents = cart.reduce((sum, item) => sum + Math.round(item.price * 100) * item.qty, 0);
+    const taxCents = Math.round(subtotalCents * TAX_RATE);
+    const totalCents = subtotalCents + taxCents;
 
     // Build pickup fulfillment
     const pickupAt = new Date();
@@ -65,11 +120,20 @@ export default async function handler(req, res) {
       },
     };
 
+    // Include tax as a line-level tax so Square's order total matches our payment amount
     const orderRes = await squareFetch('/v2/orders', {
       idempotency_key: randomUUID(),
       order: {
         location_id: LOCATION_ID,
         line_items: lineItems,
+        taxes: [
+          {
+            uid: 'sales-tax',
+            name: 'Sales Tax',
+            percentage: String(TAX_RATE * 100),
+            scope: 'ORDER',
+          },
+        ],
         fulfillments: [fulfillmentDetails],
         metadata: {
           fulfillment_info: fulfillment || 'pickup',
@@ -86,14 +150,16 @@ export default async function handler(req, res) {
     }
 
     const orderId = orderData.order.id;
+    // Use Square's computed total so payment always matches the order
+    const orderTotalCents = orderData.order.total_money?.amount ?? totalCents;
 
-    // 2. Create the payment linked to the order
+    // 2. Create the payment linked to the order using the order's own total
     const paymentRes = await squareFetch('/v2/payments', {
       idempotency_key: randomUUID(),
       source_id: sourceId,
       amount_money: {
-        amount: Math.round(amount),
-        currency: currency || 'USD',
+        amount: orderTotalCents,
+        currency: cur,
       },
       location_id: LOCATION_ID,
       order_id: orderId,
@@ -105,8 +171,8 @@ export default async function handler(req, res) {
 
     if (!paymentRes.ok) {
       console.error('Square payment error:', paymentData);
-      const msg = paymentData.errors?.[0]?.detail || 'Payment failed';
-      return res.status(400).json({ error: msg });
+      const msg = friendlyPaymentError(paymentData.errors);
+      return res.status(400).json({ error: msg, code: paymentData.errors?.[0]?.code });
     }
 
     return res.status(200).json({
@@ -115,10 +181,8 @@ export default async function handler(req, res) {
       paymentId: paymentData.payment.id,
       receiptUrl: paymentData.payment.receipt_url,
     });
-
-    // Note: order count is incremented via the admin-settings API from the frontend
   } catch (err) {
     console.error('Server error:', err);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Something went wrong on our end. Please try again.' });
   }
 }

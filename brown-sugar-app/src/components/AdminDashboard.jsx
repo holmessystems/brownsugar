@@ -12,6 +12,7 @@ export default function AdminDashboard() {
   const [orderCount, setOrderCount] = useState(0);
   const [orderLimit, setOrderLimit] = useState(20);
   const [events, setEvents] = useState([]);
+  const [pickupDay, setPickupDay] = useState('');
 
   // UI state
   const [saving, setSaving] = useState(false);
@@ -37,7 +38,8 @@ export default function AdminDashboard() {
       setOrderCount(data.orderCount ?? 0);
       setOrderLimit(data.orderLimit ?? 20);
       setEvents(data.events || []);
-      const snap = JSON.stringify({ soldOut: data.soldOut, orderCount: data.orderCount, orderLimit: data.orderLimit, events: data.events });
+      setPickupDay(data.pickupDay || 'Sunday');
+      const snap = JSON.stringify({ soldOut: data.soldOut, orderCount: data.orderCount, orderLimit: data.orderLimit, events: data.events, pickupDay: data.pickupDay });
       setSavedSnapshot(snap);
       setHasChanges(false);
     } catch (e) {
@@ -59,9 +61,9 @@ export default function AdminDashboard() {
 
   // Track changes
   useEffect(() => {
-    const current = JSON.stringify({ soldOut, orderCount, orderLimit, events });
+    const current = JSON.stringify({ soldOut, orderCount, orderLimit, events, pickupDay });
     setHasChanges(current !== savedSnapshot);
-  }, [soldOut, orderCount, orderLimit, events, savedSnapshot]);
+  }, [soldOut, orderCount, orderLimit, events, pickupDay, savedSnapshot]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -93,11 +95,11 @@ export default function AdminDashboard() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ soldOut, orderCount, orderLimit, events }),
+        body: JSON.stringify({ soldOut, orderCount, orderLimit, events, pickupDay }),
       });
       if (res.ok) {
         showToast('All changes saved!');
-        const snap = JSON.stringify({ soldOut, orderCount, orderLimit, events });
+        const snap = JSON.stringify({ soldOut, orderCount, orderLimit, events, pickupDay });
         setSavedSnapshot(snap);
         setHasChanges(false);
       } else {
@@ -250,6 +252,27 @@ export default function AdminDashboard() {
                 <span className="toggle-knob" />
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Pickup Day */}
+        <div className="admin-card">
+          <div className="admin-card-header">
+            <h2>Pickup Date</h2>
+          </div>
+          <div className="admin-card-body">
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', marginBottom: '0.75rem' }}>
+              Set the pickup date for this week's orders. The day of the week is calculated automatically and shown to customers during checkout and on receipts.
+            </p>
+            <div className="form-group">
+              <label>Pickup Date</label>
+              <input type="date" value={pickupDay} onChange={e => setPickupDay(e.target.value)} />
+            </div>
+            {pickupDay && (
+              <p style={{ fontSize: '0.9rem', color: 'var(--brown)', marginTop: '0.5rem' }}>
+                📅 {new Date(pickupDay + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+              </p>
+            )}
           </div>
         </div>
 

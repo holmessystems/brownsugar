@@ -7,6 +7,7 @@ const DEFAULT_SETTINGS = {
   soldOut: false,
   orderCount: 0,
   orderLimit: 20,
+  pickupDay: '',
   events: [
     {
       id: "1",
@@ -102,12 +103,13 @@ export default async function handler(req, res) {
     }
 
     const current = await getSettings();
-    const { soldOut, events, orderCount, orderLimit } = req.body;
+    const { soldOut, events, orderCount, orderLimit, pickupDay } = req.body;
 
     if (typeof soldOut === 'boolean') current.soldOut = soldOut;
     if (Array.isArray(events)) current.events = events;
     if (typeof orderCount === 'number') current.orderCount = orderCount;
     if (typeof orderLimit === 'number') current.orderLimit = orderLimit;
+    if (typeof pickupDay === 'string') current.pickupDay = pickupDay;
 
     await saveSettings(current);
 

@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { customer, items, subtotal, tax, total, pickupTime, pickupAddress, pickupZip } = req.body;
+  const { customer, items, subtotal, tax, total, pickupDay, pickupTime, pickupAddress, pickupZip } = req.body;
 
   if (!customer?.email) {
     return res.status(400).json({ error: 'Missing customer email' });
@@ -74,6 +74,7 @@ export default async function handler(req, res) {
       </div>
       <div style="padding:16px;">
         <table style="width:100%;font-size:14px;color:#3a2d24;">
+          ${pickupDay ? `<tr><td style="padding:4px 0;color:#9a8070;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;">Date</td><td style="padding:4px 0;text-align:right;">${pickupDay}</td></tr>` : ''}
           <tr><td style="padding:4px 0;color:#9a8070;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;">Time</td><td style="padding:4px 0;text-align:right;">${pickupTime}</td></tr>
           <tr><td style="padding:4px 0;color:#9a8070;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;">Location</td><td style="padding:4px 0;text-align:right;">${pickupAddress}</td></tr>
           <tr><td style="padding:4px 0;color:#9a8070;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;">Zip Code</td><td style="padding:4px 0;text-align:right;">${pickupZip}</td></tr>

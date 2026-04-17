@@ -11,6 +11,7 @@ export default function CheckoutModal() {
     selectedPickupZip, setSelectedPickupZip,
     pickupZipCodes,
     setConfirmationOpen, setConfirmationData,
+    pickupDay,
   } = useCart();
 
   const { cardReady, loading, error: cardError, tokenize } = useSquarePayment(checkoutOpen);
@@ -23,6 +24,7 @@ export default function CheckoutModal() {
   const [instructions, setInstructions] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
+  const [paymentError, setPaymentError] = useState('');
 
   if (!checkoutOpen) return null;
 
@@ -31,7 +33,7 @@ export default function CheckoutModal() {
   const resetForm = () => {
     setFirstName(''); setLastName(''); setEmail('');
     setPhone(''); setPickupTime(''); setInstructions('');
-    setSelectedPickupZip(''); setErrors({});
+    setSelectedPickupZip(''); setErrors({}); setPaymentError('');
   };
 
   const validate = () => {
@@ -54,10 +56,14 @@ export default function CheckoutModal() {
       return;
     }
     setErrors({});
+    setPaymentError('');
 
     const pickupAddress = siteConfig.pickupAddresses?.[selectedPickupZip] || '';
 
     // Build confirmation data
+    const pickupDayFormatted = pickupDay
+      ? new Date(pickupDay + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+      : '';
     const orderData = {
       items: cart.map(item => ({
         name: item.name,
@@ -69,6 +75,7 @@ export default function CheckoutModal() {
       tax,
       total,
       customer: { firstName, lastName, email, phone },
+      pickupDay: pickupDayFormatted,
       pickupTime,
       pickupAddress,
       pickupZip: selectedPickupZip,
@@ -101,18 +108,19 @@ export default function CheckoutModal() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sourceId: token,
-          amount: Math.round(total * 100),
           currency: 'USD',
           customer: { firstName, lastName, email, phone, instructions },
           cart: cart.map(({ id, name, price, qty, flavorKey }) => ({ id, name, price, qty, flavorKey })),
-          fulfillment: `Pickup at ${pickupAddress} — ${pickupTime}`,
+          fulfillment: `Pickup ${pickupDayFormatted ? pickupDayFormatted + ' ' : ''}at ${pickupAddress} — ${pickupTime}`,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        showToast(data.error || 'Payment failed — please try again');
+        const msg = data.error || 'Payment failed — please try again.';
+        setPaymentError(msg);
+        showToast(msg);
         return;
       }
 
@@ -129,7 +137,9 @@ export default function CheckoutModal() {
         body: JSON.stringify(orderData),
       }).catch(err => console.error('Email send failed:', err));
     } catch (err) {
-      showToast(err.message || 'Something went wrong');
+      const msg = err.message || 'Something went wrong — please try again.';
+      setPaymentError(msg);
+      showToast(msg);
     } finally {
       setSubmitting(false);
     }
@@ -173,6 +183,14 @@ export default function CheckoutModal() {
           </div>
 
           <p className="modal-section">Pickup Details</p>
+          {pickupDay && (
+            <div className="pickup-day-badge" style={{
+              background: '#f5ede0', border: '1px solid #e8d5bc', borderRadius: '6px',
+              padding: '8px 14px', marginBottom: '0.75rem', fontSize: '0.85rem', color: '#3a2d24',
+            }}>
+              📅 Pickup: <strong>{new Date(pickupDay + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</strong>
+            </div>
+          )}
           <div className="form-row">
             <div className="form-group">
               <label>Pickup Area (Zip Code) *</label>
@@ -220,6 +238,15 @@ export default function CheckoutModal() {
             </div>
             {cardError && isConfigured && (
               <p style={{ color: '#c0392b', fontSize: '0.75rem', marginTop: '0.5em' }}>{cardError}</p>
+            )}
+            {paymentError && (
+              <div className="payment-error-banner" style={{
+                background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '6px',
+                padding: '10px 14px', marginTop: '0.75em', fontSize: '0.8rem', color: '#991b1b',
+                lineHeight: 1.5,
+              }}>
+                <strong>Payment Error:</strong> {paymentError}
+              </div>
             )}
             <p className="square-note">Your payment is encrypted and processed directly by Square. We never store your card details.</p>
           </div>
