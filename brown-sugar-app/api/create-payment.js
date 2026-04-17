@@ -115,6 +115,8 @@ export default async function handler(req, res) {
       paymentId: paymentData.payment.id,
       receiptUrl: paymentData.payment.receipt_url,
     });
+
+    // Note: order count is incremented via the admin-settings API from the frontend
   } catch (err) {
     console.error('Server error:', err);
     return res.status(500).json({ error: 'Internal server error' });

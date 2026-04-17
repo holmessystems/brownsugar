@@ -1,6 +1,10 @@
-import events from '../data/popUpEvents.json';
+import { useCart } from '../context/CartContext';
+import fallbackEvents from '../data/popUpEvents.json';
 
 export default function PopUpCalendar() {
+  const { liveEvents } = useCart();
+  const events = liveEvents || fallbackEvents;
+
   const validEvents = Array.isArray(events)
     ? events.filter((e) => e && e.title && e.date && e.time)
     : [];
