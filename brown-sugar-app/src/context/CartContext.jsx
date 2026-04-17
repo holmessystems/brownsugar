@@ -15,6 +15,7 @@ export function CartProvider({ children }) {
   const [orderCounts, setOrderCounts] = useState({});
   const [globalSoldOut, setGlobalSoldOut] = useState(false);
   const [liveEvents, setLiveEvents] = useState(null);
+  const [pickupDay, setPickupDay] = useState('');
   const toastTimer = useRef(null);
 
   const dailyOrderCap = siteConfig.dailyOrderCap ?? 20;
@@ -28,6 +29,7 @@ export function CartProvider({ children }) {
         const isSoldOut = data.soldOut || (data.orderCount >= data.orderLimit);
         setGlobalSoldOut(isSoldOut);
         if (Array.isArray(data.events)) setLiveEvents(data.events);
+        if (data.pickupDay) setPickupDay(data.pickupDay);
       })
       .catch(() => {});
   }, []);
@@ -161,6 +163,7 @@ export function CartProvider({ children }) {
       orderCounts, dailyOrderCap,
       isDateSoldOut, canOrderForDate,
       globalSoldOut, liveEvents,
+      pickupDay,
     }}>
       {children}
     </CartContext.Provider>
