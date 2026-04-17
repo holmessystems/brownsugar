@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import siteConfig from '../data/siteConfig.json';
 
 const CartContext = createContext();
@@ -13,10 +13,24 @@ export function CartProvider({ children }) {
   const [selectedPickupDate, setSelectedPickupDate] = useState(null);
   const [selectedPickupZip, setSelectedPickupZip] = useState('');
   const [orderCounts, setOrderCounts] = useState({});
+  const [globalSoldOut, setGlobalSoldOut] = useState(false);
+  const [liveEvents, setLiveEvents] = useState(null);
   const toastTimer = useRef(null);
 
   const dailyOrderCap = siteConfig.dailyOrderCap ?? 20;
   const pickupZipCodes = siteConfig.pickupZipCodes ?? [];
+
+  // Fetch admin settings on mount
+  useEffect(() => {
+    fetch('/api/admin-settings')
+      .then(r => r.json())
+      .then(data => {
+        const isSoldOut = data.soldOut || (data.orderCount >= data.orderLimit);
+        setGlobalSoldOut(isSoldOut);
+        if (Array.isArray(data.events)) setLiveEvents(data.events);
+      })
+      .catch(() => {});
+  }, []);
 
   const showToast = useCallback((msg) => {
     setToast(msg);
@@ -146,6 +160,7 @@ export function CartProvider({ children }) {
       pickupZipCodes,
       orderCounts, dailyOrderCap,
       isDateSoldOut, canOrderForDate,
+      globalSoldOut, liveEvents,
     }}>
       {children}
     </CartContext.Provider>

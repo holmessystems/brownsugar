@@ -14,8 +14,17 @@ import CartSidebar from './components/CartSidebar';
 import CheckoutModal from './components/CheckoutModal';
 import OrderConfirmation from './components/OrderConfirmation';
 import Toast from './components/Toast';
+import AdminDashboard from './components/AdminDashboard';
+
+function isAdminRoute() {
+  return window.location.pathname === '/admin';
+}
 
 export default function App() {
+  if (isAdminRoute()) {
+    return <AdminDashboard />;
+  }
+
   return (
     <CartProvider>
       <Navbar />
