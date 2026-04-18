@@ -19,7 +19,8 @@ export function CartProvider({ children }) {
   const toastTimer = useRef(null);
 
   const dailyOrderCap = siteConfig.dailyOrderCap ?? 20;
-  const pickupZipCodes = siteConfig.pickupZipCodes ?? [];
+  const [pickupOptions, setPickupOptions] = useState(siteConfig.pickupOptions ?? []);
+  const [selectedPickupOption, setSelectedPickupOption] = useState(null);
 
   // Fetch admin settings on mount
   useEffect(() => {
@@ -30,6 +31,9 @@ export function CartProvider({ children }) {
         setGlobalSoldOut(isSoldOut);
         if (Array.isArray(data.events)) setLiveEvents(data.events);
         if (data.pickupDay) setPickupDay(data.pickupDay);
+        if (Array.isArray(data.pickupOptions) && data.pickupOptions.length > 0) {
+          setPickupOptions(data.pickupOptions);
+        }
       })
       .catch(() => {});
   }, []);
@@ -159,7 +163,8 @@ export function CartProvider({ children }) {
       totalQty, subtotal, tax, total,
       selectedPickupDate, setSelectedPickupDate,
       selectedPickupZip, setSelectedPickupZip,
-      pickupZipCodes,
+      pickupOptions,
+      selectedPickupOption, setSelectedPickupOption,
       orderCounts, dailyOrderCap,
       isDateSoldOut, canOrderForDate,
       globalSoldOut, liveEvents,

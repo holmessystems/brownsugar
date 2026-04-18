@@ -2,14 +2,13 @@ import { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import Totals from './Totals';
 import useSquarePayment from '../hooks/useSquarePayment';
-import siteConfig from '../data/siteConfig.json';
 
 export default function CheckoutModal() {
   const {
     checkoutOpen, setCheckoutOpen,
     showToast, clearCart, cart, total, subtotal, tax,
-    selectedPickupZip, setSelectedPickupZip,
-    pickupZipCodes,
+    selectedPickupOption, setSelectedPickupOption,
+    pickupOptions,
     setConfirmationOpen, setConfirmationData,
     pickupDay,
   } = useCart();
@@ -20,7 +19,6 @@ export default function CheckoutModal() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [pickupTime, setPickupTime] = useState('');
   const [instructions, setInstructions] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
@@ -30,10 +28,12 @@ export default function CheckoutModal() {
 
   const isConfigured = !cardError?.includes('not configured');
 
+  const selectedOption = pickupOptions.find(o => o.id === selectedPickupOption) || null;
+
   const resetForm = () => {
     setFirstName(''); setLastName(''); setEmail('');
-    setPhone(''); setPickupTime(''); setInstructions('');
-    setSelectedPickupZip(''); setErrors({}); setPaymentError('');
+    setPhone(''); setInstructions('');
+    setSelectedPickupOption(null); setErrors({}); setPaymentError('');
   };
 
   const validate = () => {
@@ -43,8 +43,7 @@ export default function CheckoutModal() {
     else if (!/\S+@\S+\.\S+/.test(email)) errs.email = 'Enter a valid email';
     if (!phone.trim()) errs.phone = 'Phone number is required';
     else if (phone.replace(/\D/g, '').length < 10) errs.phone = 'Enter a valid phone number';
-    if (!selectedPickupZip) errs.zip = 'Please select a pickup area';
-    if (!pickupTime) errs.pickupTime = 'Please select a pickup time';
+    if (!selectedPickupOption) errs.pickup = 'Please select a pickup option';
     return errs;
   };
 
@@ -58,7 +57,10 @@ export default function CheckoutModal() {
     setErrors({});
     setPaymentError('');
 
-    const pickupAddress = siteConfig.pickupAddresses?.[selectedPickupZip] || '';
+    const pickupAddress = selectedOption?.address || '';
+    const pickupTime = selectedOption?.time || '';
+    const pickupZip = selectedOption?.zip || '';
+    const pickupDate = selectedOption?.date || '';
 
     // Build confirmation data
     const pickupDayFormatted = pickupDay
@@ -75,10 +77,10 @@ export default function CheckoutModal() {
       tax,
       total,
       customer: { firstName, lastName, email, phone },
-      pickupDay: pickupDayFormatted,
+      pickupDay: pickupDate || pickupDayFormatted,
       pickupTime,
       pickupAddress,
-      pickupZip: selectedPickupZip,
+      pickupZip,
     };
 
     // If Square isn't configured, do a demo order
@@ -89,7 +91,6 @@ export default function CheckoutModal() {
       setConfirmationOpen(true);
       resetForm();
 
-      // Send confirmation email in demo mode too
       fetch('/api/send-confirmation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -103,6 +104,8 @@ export default function CheckoutModal() {
     try {
       const token = await tokenize();
 
+      const fulfillmentLabel = `Pickup ${pickupDate} at ${pickupAddress} — ${pickupTime}`;
+
       const res = await fetch('/api/create-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -111,7 +114,8 @@ export default function CheckoutModal() {
           currency: 'USD',
           customer: { firstName, lastName, email, phone, instructions },
           cart: cart.map(({ id, name, price, qty, flavorKey }) => ({ id, name, price, qty, flavorKey })),
-          fulfillment: `Pickup ${pickupDayFormatted ? pickupDayFormatted + ' ' : ''}at ${pickupAddress} — ${pickupTime}`,
+          fulfillment: fulfillmentLabel,
+          pickupAddress,
         }),
       });
 
@@ -130,7 +134,6 @@ export default function CheckoutModal() {
       setConfirmationOpen(true);
       resetForm();
 
-      // Send confirmation email (fire and forget — don't block the UI)
       fetch('/api/send-confirmation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -144,10 +147,6 @@ export default function CheckoutModal() {
       setSubmitting(false);
     }
   };
-
-  const pickupTimes = [
-    '3:00 PM', '6:00 PM',
-  ];
 
   return (
     <div className="modal-overlay">
@@ -183,36 +182,30 @@ export default function CheckoutModal() {
           </div>
 
           <p className="modal-section">Pickup Details</p>
-          {pickupDay && (
+          <div className="form-group">
+            <label>Select Pickup Option *</label>
+            <select
+              value={selectedPickupOption || ''}
+              onChange={e => setSelectedPickupOption(e.target.value || null)}
+              aria-invalid={!!errors.pickup}
+            >
+              <option value="">Choose a pickup location & time</option>
+              {pickupOptions.map(opt => (
+                <option key={opt.id} value={opt.id}>{opt.label}</option>
+              ))}
+            </select>
+            {errors.pickup && <span className="field-error">{errors.pickup}</span>}
+          </div>
+          {selectedOption && (
             <div className="pickup-day-badge" style={{
               background: '#f5ede0', border: '1px solid #e8d5bc', borderRadius: '6px',
-              padding: '8px 14px', marginBottom: '0.75rem', fontSize: '0.85rem', color: '#3a2d24',
+              padding: '10px 14px', marginBottom: '0.75rem', fontSize: '0.85rem', color: '#3a2d24',
+              lineHeight: 1.6,
             }}>
-              📅 Pickup: <strong>{new Date(pickupDay + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</strong>
+              📅 <strong>{selectedOption.date}</strong> at <strong>{selectedOption.time}</strong><br />
+              📍 {selectedOption.address}
             </div>
           )}
-          <div className="form-row">
-            <div className="form-group">
-              <label>Pickup Area (Zip Code) *</label>
-              <select value={selectedPickupZip} onChange={e => setSelectedPickupZip(e.target.value)} aria-invalid={!!errors.zip}>
-                <option value="">Select pickup area</option>
-                {pickupZipCodes.map(zip => (
-                  <option key={zip} value={zip}>{zip} — Houston Area</option>
-                ))}
-              </select>
-              {errors.zip && <span className="field-error">{errors.zip}</span>}
-            </div>
-            <div className="form-group">
-              <label>Pickup Time *</label>
-              <select value={pickupTime} onChange={e => setPickupTime(e.target.value)} aria-invalid={!!errors.pickupTime}>
-                <option value="">Select time</option>
-                {pickupTimes.map(t => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-              {errors.pickupTime && <span className="field-error">{errors.pickupTime}</span>}
-            </div>
-          </div>
           <p className="pickup-note-checkout">Exact pickup address will be provided on your receipt after checkout.</p>
 
           <div className="form-group">

@@ -75,7 +75,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { sourceId, currency, customer, cart, fulfillment } = req.body;
+  const { sourceId, currency, customer, cart, fulfillment, pickupAddress } = req.body;
 
   if (!sourceId) {
     return res.status(400).json({ error: 'Missing payment source' });
@@ -105,6 +105,11 @@ export default async function handler(req, res) {
     // Build pickup fulfillment
     const pickupAt = new Date();
     pickupAt.setDate(pickupAt.getDate() + 1); // default to tomorrow
+    const fulfillmentNote = [
+      customer?.instructions || '',
+      pickupAddress ? `Pickup Location: ${pickupAddress}` : '',
+      fulfillment || '',
+    ].filter(Boolean).join(' | ');
     const fulfillmentDetails = {
       type: 'PICKUP',
       state: 'PROPOSED',
@@ -114,7 +119,7 @@ export default async function handler(req, res) {
           email_address: customer?.email || '',
           phone_number: customer?.phone || '',
         },
-        note: customer?.instructions || '',
+        note: fulfillmentNote,
         schedule_type: 'SCHEDULED',
         pickup_at: pickupAt.toISOString(),
       },

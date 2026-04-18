@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
+import siteConfig from '../data/siteConfig.json';
 
 const EMPTY_EVENT = { id: '', title: '', area: '', date: '', time: '', type: 'One-Day Pop-Up' };
+const EMPTY_PICKUP = { id: '', label: '', date: '', time: '', zip: '', address: '' };
 
 export default function AdminDashboard() {
   const [password, setPassword] = useState('');
@@ -13,11 +15,13 @@ export default function AdminDashboard() {
   const [orderLimit, setOrderLimit] = useState(20);
   const [events, setEvents] = useState([]);
   const [pickupDay, setPickupDay] = useState('');
+  const [pickupOptions, setPickupOptions] = useState(siteConfig.pickupOptions || []);
 
   // UI state
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
   const [editingEvent, setEditingEvent] = useState(null);
+  const [editingPickup, setEditingPickup] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [location, setLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -39,7 +43,8 @@ export default function AdminDashboard() {
       setOrderLimit(data.orderLimit ?? 20);
       setEvents(data.events || []);
       setPickupDay(data.pickupDay || 'Sunday');
-      const snap = JSON.stringify({ soldOut: data.soldOut, orderCount: data.orderCount, orderLimit: data.orderLimit, events: data.events, pickupDay: data.pickupDay });
+      setPickupOptions(Array.isArray(data.pickupOptions) ? data.pickupOptions : siteConfig.pickupOptions || []);
+      const snap = JSON.stringify({ soldOut: data.soldOut, orderCount: data.orderCount, orderLimit: data.orderLimit, events: data.events, pickupDay: data.pickupDay, pickupOptions: data.pickupOptions });
       setSavedSnapshot(snap);
       setHasChanges(false);
     } catch (e) {
@@ -61,9 +66,9 @@ export default function AdminDashboard() {
 
   // Track changes
   useEffect(() => {
-    const current = JSON.stringify({ soldOut, orderCount, orderLimit, events, pickupDay });
+    const current = JSON.stringify({ soldOut, orderCount, orderLimit, events, pickupDay, pickupOptions });
     setHasChanges(current !== savedSnapshot);
-  }, [soldOut, orderCount, orderLimit, events, pickupDay, savedSnapshot]);
+  }, [soldOut, orderCount, orderLimit, events, pickupDay, pickupOptions, savedSnapshot]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -95,11 +100,11 @@ export default function AdminDashboard() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ soldOut, orderCount, orderLimit, events, pickupDay }),
+        body: JSON.stringify({ soldOut, orderCount, orderLimit, events, pickupDay, pickupOptions }),
       });
       if (res.ok) {
         showToast('All changes saved!');
-        const snap = JSON.stringify({ soldOut, orderCount, orderLimit, events, pickupDay });
+        const snap = JSON.stringify({ soldOut, orderCount, orderLimit, events, pickupDay, pickupOptions });
         setSavedSnapshot(snap);
         setHasChanges(false);
       } else {
@@ -123,6 +128,23 @@ export default function AdminDashboard() {
       setEvents(prev => [...prev, { ...evt, id: String(Date.now()) }]);
     }
     setEditingEvent(null);
+  };
+
+  const deletePickup = (id) => {
+    setPickupOptions(prev => prev.filter(p => p.id !== id));
+  };
+
+  const savePickup = (opt) => {
+    // Auto-generate label from fields
+    const label = `${opt.address ? opt.address.split(',')[0] : opt.zip} — ${opt.date} at ${opt.time}`;
+    const withLabel = { ...opt, label };
+
+    if (pickupOptions.find(p => p.id === opt.id)) {
+      setPickupOptions(prev => prev.map(p => p.id === opt.id ? withLabel : p));
+    } else {
+      setPickupOptions(prev => [...prev, { ...withLabel, id: String(Date.now()) }]);
+    }
+    setEditingPickup(null);
   };
 
   const resetOrderCount = () => {
@@ -276,8 +298,38 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Square Location */}
+        {/* Pickup Options */}
         <div className="admin-card">
+          <div className="admin-card-header">
+            <h2>Pickup Options</h2>
+            <button className="btn-primary" onClick={() => setEditingPickup({ ...EMPTY_PICKUP })}>+ Add Option</button>
+          </div>
+          <div className="admin-card-body">
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', marginBottom: '0.75rem' }}>
+              These are the pickup choices customers see at checkout. Each option includes a location, date, and time. Add, edit, or remove options as needed.
+            </p>
+            {pickupOptions.length === 0 ? (
+              <p className="admin-empty">No pickup options configured. Add one above.</p>
+            ) : (
+              <div className="admin-events-list">
+                {pickupOptions.map(opt => (
+                  <div key={opt.id} className="admin-event-row">
+                    <div className="admin-event-info">
+                      <span className="admin-event-title">{opt.date} — {opt.time}</span>
+                      <span className="admin-event-meta">{opt.address} ({opt.zip})</span>
+                    </div>
+                    <div className="admin-event-actions">
+                      <button className="btn-outline" onClick={() => setEditingPickup({ ...opt })}>Edit</button>
+                      <button className="btn-outline" style={{ color: '#c0392b', borderColor: '#c0392b' }} onClick={() => deletePickup(opt.id)}>Delete</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Square Location */}        <div className="admin-card">
           <div className="admin-card-header">
             <h2>Square Location</h2>
           </div>
@@ -345,6 +397,10 @@ export default function AdminDashboard() {
         {editingEvent && (
           <EventEditor event={editingEvent} onSave={saveEvent} onCancel={() => setEditingEvent(null)} />
         )}
+
+        {editingPickup && (
+          <PickupEditor pickup={editingPickup} onSave={savePickup} onCancel={() => setEditingPickup(null)} />
+        )}
       </div>
 
       {toast && <div className="admin-toast">{toast}</div>}
@@ -401,6 +457,54 @@ function EventEditor({ event, onSave, onCancel }) {
           <div className="modal-footer">
             <button type="button" className="btn-outline" onClick={onCancel}>Cancel</button>
             <button type="submit" className="btn-primary">Save Event</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function PickupEditor({ pickup, onSave, onCancel }) {
+  const [form, setForm] = useState(pickup);
+  const set = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!form.date || !form.time || !form.zip) return;
+    onSave(form);
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '28rem' }}>
+        <div className="modal-header">
+          <h3>{pickup.id ? 'Edit Pickup Option' : 'Add Pickup Option'}</h3>
+          <button className="close-cart" onClick={onCancel}>✕</button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <div className="form-group">
+              <label>Date *</label>
+              <input value={form.date} onChange={e => set('date', e.target.value)} placeholder="e.g. Sunday, April 19" />
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Time *</label>
+                <input value={form.time} onChange={e => set('time', e.target.value)} placeholder="e.g. 3:00 PM" />
+              </div>
+              <div className="form-group">
+                <label>Zip Code *</label>
+                <input value={form.zip} onChange={e => set('zip', e.target.value)} placeholder="e.g. 77068" />
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Full Address</label>
+              <input value={form.address} onChange={e => set('address', e.target.value)} placeholder="e.g. 3140 FM 1960 Rd W, Houston, TX 77068" />
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn-outline" onClick={onCancel}>Cancel</button>
+            <button type="submit" className="btn-primary">Save Pickup Option</button>
           </div>
         </form>
       </div>

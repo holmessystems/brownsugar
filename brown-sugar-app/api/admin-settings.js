@@ -8,6 +8,32 @@ const DEFAULT_SETTINGS = {
   orderCount: 0,
   orderLimit: 20,
   pickupDay: '',
+  pickupOptions: [
+    {
+      id: "spring-sun-3pm",
+      label: "Spring, TX 77068 — Sunday 4/19 at 3:00 PM",
+      date: "Sunday, April 19",
+      time: "3:00 PM",
+      zip: "77068",
+      address: "3140 FM 1960 Rd W, Houston, TX 77068"
+    },
+    {
+      id: "richmond-sun-6pm",
+      label: "Richmond, TX 77406 — Sunday 4/19 at 6:00 PM",
+      date: "Sunday, April 19",
+      time: "6:00 PM",
+      zip: "77406",
+      address: "7920 W Grand Parkway S, Richmond, TX 77406"
+    },
+    {
+      id: "houston-mon-wed-3pm",
+      label: "Houston, TX 77027 — Mon–Wed 4/20–4/22 at 3:00–4:00 PM",
+      date: "Mon–Wed, April 20–22",
+      time: "3:00–4:00 PM",
+      zip: "77027",
+      address: "4733 Richmond Ave, Houston, TX 77027"
+    }
+  ],
   events: [
     {
       id: "1",
@@ -61,6 +87,16 @@ async function getSettings() {
   return { ...DEFAULT_SETTINGS };
 }
 
+// Ensure saved settings have all default keys (handles upgrades)
+function mergeDefaults(saved) {
+  const merged = { ...DEFAULT_SETTINGS, ...saved };
+  // Only fill in default pickupOptions if the key doesn't exist at all (pre-upgrade blob)
+  if (!('pickupOptions' in saved)) {
+    merged.pickupOptions = DEFAULT_SETTINGS.pickupOptions;
+  }
+  return merged;
+}
+
 async function saveSettings(settings) {
   const blob = await put(SETTINGS_URL_KEY, JSON.stringify(settings), {
     access: 'public',
@@ -88,7 +124,8 @@ export default async function handler(req, res) {
 
   // GET — public
   if (req.method === 'GET') {
-    const settings = await getSettings();
+    const raw = await getSettings();
+    const settings = mergeDefaults(raw);
     // Auto sold-out if order count >= limit
     if (settings.orderCount >= settings.orderLimit && !settings.soldOut) {
       settings.soldOut = true;
@@ -102,14 +139,16 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const current = await getSettings();
-    const { soldOut, events, orderCount, orderLimit, pickupDay } = req.body;
+    const raw = await getSettings();
+    const current = mergeDefaults(raw);
+    const { soldOut, events, orderCount, orderLimit, pickupDay, pickupOptions } = req.body;
 
     if (typeof soldOut === 'boolean') current.soldOut = soldOut;
     if (Array.isArray(events)) current.events = events;
     if (typeof orderCount === 'number') current.orderCount = orderCount;
     if (typeof orderLimit === 'number') current.orderLimit = orderLimit;
     if (typeof pickupDay === 'string') current.pickupDay = pickupDay;
+    if (Array.isArray(pickupOptions)) current.pickupOptions = pickupOptions;
 
     await saveSettings(current);
 
