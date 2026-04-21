@@ -48,6 +48,8 @@ export default function CateringEvents() {
     return newErrors;
   };
 
+  const [submitting, setSubmitting] = useState(false);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const newErrors = validate();
@@ -56,6 +58,14 @@ export default function CateringEvents() {
       return;
     }
     setErrors({});
+
+    // Fire and forget — don't wait for the response
+    fetch('/api/catering-inquiry', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    }).catch(() => {});
+
     setSubmitted(true);
     setForm(initialForm);
     showToast('Catering inquiry submitted! We will be in touch soon.');
@@ -178,8 +188,8 @@ export default function CateringEvents() {
             />
           </div>
 
-          <button type="submit" className="btn-primary">
-            Submit a Catering Inquiry
+          <button type="submit" className="btn-primary" disabled={submitting}>
+            {submitting ? 'Submitting…' : 'Submit a Catering Inquiry'}
           </button>
         </form>
       </div>
