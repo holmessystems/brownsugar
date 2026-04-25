@@ -93,7 +93,7 @@ export default async function handler(req, res) {
     </div>
 
     <div style="text-align:center;padding:16px 0;font-size:12px;color:#9a8070;">
-      <p style="margin:0 0 4px;">Questions? Email hello@officialbrownsugarco.com</p>
+      <p style="margin:0 0 4px;">Questions? Email info@officialbrownsugarco.com</p>
       <p style="margin:0;">Follow us @officialbrownsugarco</p>
       <p style="margin:8px 0 0;font-size:11px;color:#c8a882;">© 2025 Official Brown Sugar Co. · Houston, TX</p>
     </div>
