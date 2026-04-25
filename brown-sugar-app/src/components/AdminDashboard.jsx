@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import siteConfig from '../data/siteConfig.json';
 
-const EMPTY_EVENT = { id: '', title: '', area: '', date: '', time: '', type: 'One-Day Pop-Up' };
+const EMPTY_EVENT = { id: '', title: '', area: '', date: '', time: '', type: 'One-Day Pop-Up', walkIns: false };
 const EMPTY_PICKUP = { id: '', label: '', date: '', time: '', zip: '', address: '' };
 
 export default function AdminDashboard() {
@@ -380,7 +380,10 @@ export default function AdminDashboard() {
                 {events.map(evt => (
                   <div key={evt.id} className="admin-event-row">
                     <div className="admin-event-info">
-                      <span className="admin-event-title">{evt.title}</span>
+                      <span className="admin-event-title">
+                        {evt.title}
+                        {evt.walkIns && <span className="walk-in-badge">Walk-Ins OK</span>}
+                      </span>
                       <span className="admin-event-meta">{evt.date} · {evt.time} · {evt.area}</span>
                     </div>
                     <div className="admin-event-actions">
@@ -452,6 +455,24 @@ function EventEditor({ event, onSave, onCancel }) {
                 <option value="Limited-Time Event">Limited-Time Event</option>
                 <option value="Special Event">Special Event</option>
               </select>
+            </div>
+            <div className="sold-out-toggle" style={{ marginTop: 'var(--space-sm)' }}>
+              <div>
+                <p className="toggle-label">Walk-Ins Welcome</p>
+                <p className="toggle-desc">
+                  {form.walkIns
+                    ? 'This event allows walk-in customers (no preorder required).'
+                    : 'Preorder only — no walk-ins at this event.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                className={`toggle-btn ${form.walkIns ? 'toggle-on' : 'toggle-off'}`}
+                onClick={() => set('walkIns', !form.walkIns)}
+                aria-label="Toggle walk-ins"
+              >
+                <span className="toggle-knob" />
+              </button>
             </div>
           </div>
           <div className="modal-footer">

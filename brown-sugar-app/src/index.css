@@ -998,6 +998,21 @@ footer ul a:hover { color: var(--rose-gold-light); }
   border-radius: 0.125rem;
   margin-bottom: 0.5em;
 }
+.event-badges {
+  display: flex;
+  gap: 0.4em;
+  flex-wrap: wrap;
+}
+.walk-in-badge {
+  background: #27ae60;
+}
+.admin-event-title .walk-in-badge {
+  font-size: 0.6rem;
+  padding: 0.15em 0.5em;
+  border-radius: 0.125rem;
+  margin-left: 0.5em;
+  vertical-align: middle;
+}
 .event-preorder-note {
   font-size: clamp(0.68rem, 0.85vw, 0.78rem);
   color: var(--rose-gold-dark);

@@ -26,14 +26,19 @@ export default function PopUpCalendar() {
         <div className="events-list">
           {validEvents.map((event) => (
             <div key={event.id} className="event-card">
-              <span className="event-type-badge">{event.type}</span>
+              <div className="event-badges">
+                <span className="event-type-badge">{event.type}</span>
+                {event.walkIns && <span className="event-type-badge walk-in-badge">Walk-Ins Welcome</span>}
+              </div>
               <h3 className="event-location">{event.title}</h3>
               <p className="event-address">{event.area}</p>
               <p className="event-datetime">
                 <span className="event-date">📅 {event.date}</span>
                 <span className="event-time">🕐 {event.time}</span>
               </p>
-              <p className="event-preorder-note">Preorder required. No walk-ups.</p>
+              <p className="event-preorder-note">
+                {event.walkIns ? 'Walk-ins welcome — no preorder needed!' : 'Preorder required. No walk-ups.'}
+              </p>
             </div>
           ))}
         </div>
