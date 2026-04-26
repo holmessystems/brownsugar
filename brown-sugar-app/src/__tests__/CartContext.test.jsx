@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { CartProvider, useCart } from '../context/CartContext';
-import { product, flavors } from '../data/products';
+import { product, products, flavors } from '../data/products';
 import * as fc from 'fast-check';
+
+const sixPack = products.find((p) => p.boxSize === 6);
 
 // Helper: wrap renderHook with CartProvider
 function renderCartHook() {
@@ -358,5 +360,81 @@ describe('Property 5: Invalid flavor selections are rejected', () => {
       }),
       { numRuns: 100 },
     );
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6-pack support tests
+// ─────────────────────────────────────────────────────────────────────────────
+describe('CartContext – 6-pack support', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    global.fetch = vi.fn(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve({}) }),
+    );
+  });
+
+  it('addBoxToCart with 6-pack valid selection creates correct cart item', async () => {
+    const { result } = renderCartHook();
+    await act(async () => {});
+
+    const sel = { [flavors[0].name]: 6 };
+    act(() => result.current.addBoxToCart(sel, sixPack));
+
+    expect(result.current.cart).toHaveLength(1);
+    const item = result.current.cart[0];
+    expect(item.price).toBe(sixPack.price);
+    expect(item.boxSize).toBe(6);
+    expect(item.qty).toBe(1);
+  });
+
+  it('addBoxToCart rejects 6-pack with wrong flavor count', async () => {
+    const { result } = renderCartHook();
+    await act(async () => {});
+
+    const badSel = { [flavors[0].name]: 4 }; // only 4, need 6
+    act(() => result.current.addBoxToCart(badSel, sixPack));
+
+    expect(result.current.cart).toHaveLength(0);
+    expect(result.current.toast).toMatch(/select exactly 6/i);
+  });
+
+  it('4-pack and 6-pack are separate cart items', async () => {
+    const { result } = renderCartHook();
+    await act(async () => {});
+
+    const sel4 = { [flavors[0].name]: 4 };
+    const sel6 = { [flavors[0].name]: 6 };
+
+    act(() => result.current.addBoxToCart(sel4, product));
+    act(() => result.current.addBoxToCart(sel6, sixPack));
+
+    expect(result.current.cart).toHaveLength(2);
+
+    const prices = result.current.cart.map((c) => c.price).sort((a, b) => a - b);
+    expect(prices).toEqual([product.price, sixPack.price]);
+  });
+
+  it('subtotal is correct with mixed 4-pack and 6-pack', async () => {
+    const { result } = renderCartHook();
+    await act(async () => {});
+
+    const sel4 = { [flavors[0].name]: 4 };
+    const sel6 = { [flavors[1].name]: 6 };
+
+    act(() => result.current.addBoxToCart(sel4, product));
+    act(() => result.current.addBoxToCart(sel6, sixPack));
+
+    expect(result.current.subtotal).toBe(product.price + sixPack.price);
+  });
+
+  it('liveProducts and liveFlavors are exposed from context', async () => {
+    const { result } = renderCartHook();
+    await act(async () => {});
+
+    expect(Array.isArray(result.current.liveProducts)).toBe(true);
+    expect(result.current.liveProducts.length).toBeGreaterThanOrEqual(2);
+    expect(Array.isArray(result.current.liveFlavors)).toBe(true);
+    expect(result.current.liveFlavors.length).toBeGreaterThanOrEqual(1);
   });
 });
