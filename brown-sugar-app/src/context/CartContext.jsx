@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import siteConfig from '../data/siteConfig.json';
+import { products as defaultProducts, flavors as defaultFlavors } from '../data/products';
 
 const CartContext = createContext();
 
@@ -16,6 +17,8 @@ export function CartProvider({ children }) {
   const [globalSoldOut, setGlobalSoldOut] = useState(false);
   const [liveEvents, setLiveEvents] = useState(null);
   const [pickupDay, setPickupDay] = useState('');
+  const [liveProducts, setLiveProducts] = useState(defaultProducts);
+  const [liveFlavors, setLiveFlavors] = useState(defaultFlavors);
   const toastTimer = useRef(null);
 
   const dailyOrderCap = siteConfig.dailyOrderCap ?? 20;
@@ -33,6 +36,12 @@ export function CartProvider({ children }) {
         if (data.pickupDay) setPickupDay(data.pickupDay);
         if (Array.isArray(data.pickupOptions) && data.pickupOptions.length > 0) {
           setPickupOptions(data.pickupOptions);
+        }
+        if (Array.isArray(data.products) && data.products.length > 0) {
+          setLiveProducts(data.products);
+        }
+        if (Array.isArray(data.flavors) && data.flavors.length > 0) {
+          setLiveFlavors(data.flavors);
         }
       })
       .catch(() => {});
@@ -169,6 +178,7 @@ export function CartProvider({ children }) {
       isDateSoldOut, canOrderForDate,
       globalSoldOut, liveEvents,
       pickupDay,
+      liveProducts, liveFlavors,
     }}>
       {children}
     </CartContext.Provider>
