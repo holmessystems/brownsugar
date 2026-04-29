@@ -75,7 +75,7 @@ export default function OrderConfirmation() {
           </div>
 
           <p className="receipt-note">
-            Questions? Contact us at info@officialbrownsugarco.com or DM @officialbrownsugarco
+            Questions? Text us at <a href="sms:8333932713">833-393-2713</a>
           </p>
         </div>
         <div className="modal-footer">

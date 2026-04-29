@@ -15,7 +15,7 @@ export default function PopUpCalendar() {
         <p className="section-label">Limited-Time Events</p>
         <h2 className="section-title">Upcoming Pop-Ups</h2>
         <p className="section-sub">
-          Each event is a one-day-only pop-up. Preorder is required — no walk-ups.
+          Each event is a one-day-only pop-up.
           Exact location provided after checkout.
         </p>
       </div>
