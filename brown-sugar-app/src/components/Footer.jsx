@@ -7,7 +7,7 @@ export default function Footer() {
             <img src="/images/logo-trans.png" alt="Brown Sugar Co." className="footer-logo-img" />
           </a>
           <p>Houston's beloved pop-up bakery crafting nostalgic, elevated cinnamon rolls and desserts. Founded by sisters Anna &amp; Toni Perry in honor of their mother's legacy.</p>
-          <p style={{ marginTop: 'var(--space-sm)' }}>📍 Houston, TX &nbsp;|&nbsp; 📱 Text us: <a href="sms:8333932713" style={{ color: 'inherit', textDecoration: 'underline' }}>833-393-2713</a></p>
+          <p style={{ marginTop: 'var(--space-sm)' }}>📍 Houston, TX &nbsp;|&nbsp; ✉️ info@officialbrownsugarco.com</p>
         </div>
         <div>
           <h4>Navigate</h4>
