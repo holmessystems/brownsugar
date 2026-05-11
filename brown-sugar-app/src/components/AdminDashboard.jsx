@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import siteConfig from '../data/siteConfig.json';
+import { products as defaultProducts, flavors as defaultFlavors } from '../data/products';
 
-const EMPTY_EVENT = { id: '', title: '', area: '', date: '', time: '', type: 'One-Day Pop-Up' };
+const EMPTY_EVENT = { id: '', title: '', area: '', date: '', time: '', type: 'One-Day Pop-Up', walkIns: false };
 const EMPTY_PICKUP = { id: '', label: '', date: '', time: '', zip: '', address: '' };
+const EMPTY_FLAVOR = { id: '', name: '', image: '' };
+const EMPTY_PRODUCT = { id: '', name: '', price: 0, boxSize: 4, description: '', image: '/images/variety-image.jpg' };
 
 export default function AdminDashboard() {
   const [password, setPassword] = useState('');
@@ -16,12 +19,16 @@ export default function AdminDashboard() {
   const [events, setEvents] = useState([]);
   const [pickupDay, setPickupDay] = useState('');
   const [pickupOptions, setPickupOptions] = useState(siteConfig.pickupOptions || []);
+  const [products, setProducts] = useState(defaultProducts);
+  const [adminFlavors, setAdminFlavors] = useState(defaultFlavors);
 
   // UI state
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
   const [editingEvent, setEditingEvent] = useState(null);
   const [editingPickup, setEditingPickup] = useState(null);
+  const [editingFlavor, setEditingFlavor] = useState(null);
+  const [editingProduct, setEditingProduct] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [location, setLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -44,7 +51,9 @@ export default function AdminDashboard() {
       setEvents(data.events || []);
       setPickupDay(data.pickupDay || 'Sunday');
       setPickupOptions(Array.isArray(data.pickupOptions) ? data.pickupOptions : siteConfig.pickupOptions || []);
-      const snap = JSON.stringify({ soldOut: data.soldOut, orderCount: data.orderCount, orderLimit: data.orderLimit, events: data.events, pickupDay: data.pickupDay, pickupOptions: data.pickupOptions });
+      setProducts(Array.isArray(data.products) && data.products.length > 0 ? data.products : defaultProducts);
+      setAdminFlavors(Array.isArray(data.flavors) && data.flavors.length > 0 ? data.flavors : defaultFlavors);
+      const snap = JSON.stringify({ soldOut: data.soldOut, orderCount: data.orderCount, orderLimit: data.orderLimit, events: data.events, pickupDay: data.pickupDay, pickupOptions: data.pickupOptions, products: data.products, flavors: data.flavors });
       setSavedSnapshot(snap);
       setHasChanges(false);
     } catch (e) {
@@ -66,9 +75,9 @@ export default function AdminDashboard() {
 
   // Track changes
   useEffect(() => {
-    const current = JSON.stringify({ soldOut, orderCount, orderLimit, events, pickupDay, pickupOptions });
+    const current = JSON.stringify({ soldOut, orderCount, orderLimit, events, pickupDay, pickupOptions, products, flavors: adminFlavors });
     setHasChanges(current !== savedSnapshot);
-  }, [soldOut, orderCount, orderLimit, events, pickupDay, pickupOptions, savedSnapshot]);
+  }, [soldOut, orderCount, orderLimit, events, pickupDay, pickupOptions, products, adminFlavors, savedSnapshot]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -100,11 +109,11 @@ export default function AdminDashboard() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ soldOut, orderCount, orderLimit, events, pickupDay, pickupOptions }),
+        body: JSON.stringify({ soldOut, orderCount, orderLimit, events, pickupDay, pickupOptions, products, flavors: adminFlavors }),
       });
       if (res.ok) {
         showToast('All changes saved!');
-        const snap = JSON.stringify({ soldOut, orderCount, orderLimit, events, pickupDay, pickupOptions });
+        const snap = JSON.stringify({ soldOut, orderCount, orderLimit, events, pickupDay, pickupOptions, products, flavors: adminFlavors });
         setSavedSnapshot(snap);
         setHasChanges(false);
       } else {
@@ -145,6 +154,35 @@ export default function AdminDashboard() {
       setPickupOptions(prev => [...prev, { ...withLabel, id: String(Date.now()) }]);
     }
     setEditingPickup(null);
+  };
+
+  // Product CRUD
+  const deleteProduct = (id) => {
+    setProducts(prev => prev.filter(p => p.id !== id));
+  };
+
+  const saveProduct = (prod) => {
+    if (products.find(p => p.id === prod.id)) {
+      setProducts(prev => prev.map(p => p.id === prod.id ? prod : p));
+    } else {
+      setProducts(prev => [...prev, { ...prod, id: Date.now() }]);
+    }
+    setEditingProduct(null);
+  };
+
+  // Flavor CRUD
+  const deleteFlavor = (id) => {
+    setAdminFlavors(prev => prev.filter(f => f.id !== id));
+  };
+
+  const saveFlavor = (flavor) => {
+    if (adminFlavors.find(f => f.id === flavor.id)) {
+      setAdminFlavors(prev => prev.map(f => f.id === flavor.id ? flavor : f));
+    } else {
+      const newId = flavor.name.toLowerCase().replace(/\s+/g, '-');
+      setAdminFlavors(prev => [...prev, { ...flavor, id: newId }]);
+    }
+    setEditingFlavor(null);
   };
 
   const resetOrderCount = () => {
@@ -329,6 +367,74 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* Products Management */}
+        <div className="admin-card">
+          <div className="admin-card-header">
+            <h2>Products (Box Sizes)</h2>
+            <button className="btn-primary" onClick={() => setEditingProduct({ ...EMPTY_PRODUCT })}>+ Add Product</button>
+          </div>
+          <div className="admin-card-body">
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', marginBottom: '0.75rem' }}>
+              Manage the box sizes customers can order. Each product has its own price and pack size.
+            </p>
+            {products.length === 0 ? (
+              <p className="admin-empty">No products configured. Add one above.</p>
+            ) : (
+              <div className="admin-events-list">
+                {products.map(prod => (
+                  <div key={prod.id} className="admin-event-row">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+                      <img src={prod.image} alt={prod.name} style={{ width: '3rem', height: '3rem', borderRadius: '0.5rem', objectFit: 'cover', flexShrink: 0 }} />
+                      <div className="admin-event-info">
+                        <span className="admin-event-title">{prod.name}</span>
+                        <span className="admin-event-meta">{prod.boxSize}-pack · ${prod.price}</span>
+                      </div>
+                    </div>
+                    <div className="admin-event-actions">
+                      <button className="btn-outline" onClick={() => setEditingProduct({ ...prod })}>Edit</button>
+                      <button className="btn-outline" style={{ color: '#c0392b', borderColor: '#c0392b' }} onClick={() => deleteProduct(prod.id)}>Delete</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Flavors Management */}
+        <div className="admin-card">
+          <div className="admin-card-header">
+            <h2>Flavors</h2>
+            <button className="btn-primary" onClick={() => setEditingFlavor({ ...EMPTY_FLAVOR })}>+ Add Flavor</button>
+          </div>
+          <div className="admin-card-body">
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', marginBottom: '0.75rem' }}>
+              Manage the flavors customers can choose when building their box. Each flavor has a name and image.
+            </p>
+            {adminFlavors.length === 0 ? (
+              <p className="admin-empty">No flavors configured. Add one above.</p>
+            ) : (
+              <div className="admin-events-list">
+                {adminFlavors.map(flavor => (
+                  <div key={flavor.id} className="admin-event-row">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+                      <img src={flavor.image} alt={flavor.name} style={{ width: '3rem', height: '3rem', borderRadius: '0.5rem', objectFit: 'cover', flexShrink: 0 }} />
+                      <div className="admin-event-info">
+                        <span className="admin-event-title">{flavor.name}</span>
+                        <span className="admin-event-meta">{flavor.image}</span>
+                      </div>
+                    </div>
+                    <div className="admin-event-actions">
+                      <button className="btn-outline" onClick={() => setEditingFlavor({ ...flavor })}>Edit</button>
+                      <button className="btn-outline" style={{ color: '#c0392b', borderColor: '#c0392b' }} onClick={() => deleteFlavor(flavor.id)}>Delete</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Square Location */}        <div className="admin-card">
           <div className="admin-card-header">
             <h2>Square Location</h2>
@@ -380,7 +486,10 @@ export default function AdminDashboard() {
                 {events.map(evt => (
                   <div key={evt.id} className="admin-event-row">
                     <div className="admin-event-info">
-                      <span className="admin-event-title">{evt.title}</span>
+                      <span className="admin-event-title">
+                        {evt.title}
+                        {evt.walkIns && <span className="walk-in-badge">Walk-Ins OK</span>}
+                      </span>
                       <span className="admin-event-meta">{evt.date} · {evt.time} · {evt.area}</span>
                     </div>
                     <div className="admin-event-actions">
@@ -400,6 +509,14 @@ export default function AdminDashboard() {
 
         {editingPickup && (
           <PickupEditor pickup={editingPickup} onSave={savePickup} onCancel={() => setEditingPickup(null)} />
+        )}
+
+        {editingProduct && (
+          <ProductEditor product={editingProduct} onSave={saveProduct} onCancel={() => setEditingProduct(null)} />
+        )}
+
+        {editingFlavor && (
+          <FlavorEditor flavor={editingFlavor} onSave={saveFlavor} onCancel={() => setEditingFlavor(null)} />
         )}
       </div>
 
@@ -453,6 +570,24 @@ function EventEditor({ event, onSave, onCancel }) {
                 <option value="Special Event">Special Event</option>
               </select>
             </div>
+            <div className="sold-out-toggle" style={{ marginTop: 'var(--space-sm)' }}>
+              <div>
+                <p className="toggle-label">Walk-Ins Welcome</p>
+                <p className="toggle-desc">
+                  {form.walkIns
+                    ? 'This event allows walk-in customers (no preorder required).'
+                    : 'Preorder only — no walk-ins at this event.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                className={`toggle-btn ${form.walkIns ? 'toggle-on' : 'toggle-off'}`}
+                onClick={() => set('walkIns', !form.walkIns)}
+                aria-label="Toggle walk-ins"
+              >
+                <span className="toggle-knob" />
+              </button>
+            </div>
           </div>
           <div className="modal-footer">
             <button type="button" className="btn-outline" onClick={onCancel}>Cancel</button>
@@ -505,6 +640,106 @@ function PickupEditor({ pickup, onSave, onCancel }) {
           <div className="modal-footer">
             <button type="button" className="btn-outline" onClick={onCancel}>Cancel</button>
             <button type="submit" className="btn-primary">Save Pickup Option</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ProductEditor({ product, onSave, onCancel }) {
+  const [form, setForm] = useState(product);
+  const set = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!form.name || !form.price || !form.boxSize) return;
+    onSave({ ...form, price: Number(form.price), boxSize: Number(form.boxSize) });
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '28rem' }}>
+        <div className="modal-header">
+          <h3>{product.id ? 'Edit Product' : 'Add Product'}</h3>
+          <button className="close-cart" onClick={onCancel}>✕</button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <div className="form-group">
+              <label>Product Name *</label>
+              <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Cinnamon Roll Box (6-Pack)" />
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Price ($) *</label>
+                <input type="number" min="0" step="0.01" value={form.price} onChange={e => set('price', e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>Box Size *</label>
+                <input type="number" min="1" value={form.boxSize} onChange={e => set('boxSize', e.target.value)} />
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Description</label>
+              <input value={form.description} onChange={e => set('description', e.target.value)} placeholder="Short description for customers" />
+            </div>
+            <div className="form-group">
+              <label>Image URL</label>
+              <input value={form.image} onChange={e => set('image', e.target.value)} placeholder="/images/variety-image.jpg" />
+            </div>
+            {form.image && (
+              <div style={{ marginTop: '0.5rem' }}>
+                <img src={form.image} alt="Preview" style={{ width: '100%', maxHeight: '10rem', objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid var(--tan-light)' }} />
+              </div>
+            )}
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn-outline" onClick={onCancel}>Cancel</button>
+            <button type="submit" className="btn-primary">Save Product</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function FlavorEditor({ flavor, onSave, onCancel }) {
+  const [form, setForm] = useState(flavor);
+  const set = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!form.name) return;
+    onSave(form);
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '28rem' }}>
+        <div className="modal-header">
+          <h3>{flavor.id ? 'Edit Flavor' : 'Add Flavor'}</h3>
+          <button className="close-cart" onClick={onCancel}>✕</button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <div className="form-group">
+              <label>Flavor Name *</label>
+              <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Strawberry Cheesecake" />
+            </div>
+            <div className="form-group">
+              <label>Image URL *</label>
+              <input value={form.image} onChange={e => set('image', e.target.value)} placeholder="/images/strawberry.jpeg" />
+            </div>
+            {form.image && (
+              <div style={{ marginTop: '0.5rem' }}>
+                <img src={form.image} alt="Preview" style={{ width: '100%', maxHeight: '10rem', objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid var(--tan-light)' }} />
+              </div>
+            )}
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn-outline" onClick={onCancel}>Cancel</button>
+            <button type="submit" className="btn-primary">Save Flavor</button>
           </div>
         </form>
       </div>
